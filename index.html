@@ -1,0 +1,429 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Тест: Что подарить маме ко Дню матери</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #F2F8FB;
+      color: #1D1D1B;
+    }
+
+    .app {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 16px;
+      background: #fff;
+      min-height: 100vh;
+      box-sizing: border-box;
+      border-left: 6px solid #009FDF;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #006C9F;
+      margin-bottom: 16px;
+    }
+
+    .question {
+      margin-bottom: 28px;
+    }
+
+    .question-title {
+      font-weight: 600;
+      font-size: 17px;
+      margin-bottom: 12px;
+      color: #1D1D1B;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .option {
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #CCE7F3;
+      background: #F7FCFE;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+      font-size: 15px;
+    }
+
+    .option:hover {
+      background: #E4F4FB;
+      border-color: #009FDF;
+    }
+
+    .option input {
+      margin-right: 10px;
+      accent-color: #009FDF;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px 18px;
+      font-size: 17px;
+      font-weight: 600;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: 0.2s ease;
+      background: #009FDF;
+      color: #fff;
+      margin-top: 10px;
+    }
+
+    button:hover:not(:disabled) {
+      background: #007fba;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .progress {
+      margin-bottom: 18px;
+      font-size: 14px;
+      color: #006C9F;
+      font-weight: 500;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #result-screen {
+      padding-top: 20px;
+    }
+
+    .result-title {
+      font-size: 22px;
+      margin-bottom: 10px;
+      font-weight: 700;
+      color: #006C9F;
+    }
+
+    .result-text {
+      font-size: 16px;
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+
+    .restart {
+      background: #E4F4FB;
+      color: #006C9F;
+      border: 1px solid #009FDF;
+    }
+
+    .restart:hover {
+      background: #d7eef7;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div id="quiz-screen">
+      <h1>Что подарить маме ко Дню матери?</h1>
+      <div class="progress" id="progress"></div>
+      <div id="question-container"></div>
+      <button id="next-btn">Дальше</button>
+    </div>
+
+    <div id="result-screen" class="hidden">
+      <h1>Ваш результат</h1>
+      <div class="result-title" id="result-title"></div>
+      <div class="result-text" id="result-text"></div>
+      <button class="restart" id="restart-btn">Пройти ещё раз</button>
+    </div>
+  </div>
+
+  <script>
+    // Если запускается внутри Telegram WebApp
+    let tg = null;
+    if (window.Telegram && window.Telegram.WebApp) {
+      tg = window.Telegram.WebApp;
+      tg.expand();
+    }
+
+    // ---------- ДАННЫЕ ТЕСТА ----------
+
+    const questions = [
+      {
+        id: 1,
+        text: "Как мама обычно проводит свободное время?",
+        options: [
+          { text: "Любит гулять, ходить куда-то, посещать мероприятия", scores: { experience: 2 } },
+          { text: "Занимается домом, хозяйством, готовкой", scores: { practical: 2 } },
+          { text: "Смотрит фильмы, ухаживает за собой, читает журналы", scores: { beauty: 2 } },
+          { text: "Пересматривает старые фото, вспоминает истории", scores: { sentimental: 2 } },
+        ],
+      },
+      {
+        id: 2,
+        text: "Как мама реагирует на подарки?",
+        options: [
+          { text: "Больше ценит внимание и эмоции, чем вещь", scores: { sentimental: 2, experience: 1 } },
+          { text: "Радуется, когда это то, что можно использовать в быту", scores: { practical: 2 } },
+          { text: "Любит красивые вещи, которые поднимают настроение", scores: { beauty: 2 } },
+          { text: "Говорит: “Мне ничего не нужно”", scores: { sentimental: 1 } },
+        ],
+      },
+      {
+        id: 3,
+        text: "Насколько мама любит сюрпризы?",
+        options: [
+          { text: "Очень любит, обожает неожиданности", scores: { experience: 2 } },
+          { text: "Предпочитает знать всё заранее", scores: { practical: 1 } },
+          { text: "Не важно, главное — внимание", scores: { sentimental: 1 } },
+          { text: "Скорее не любит, чтобы её лишний раз беспокоили", scores: { practical: 2 } },
+        ],
+      },
+      {
+        id: 4,
+        text: "Что мама чаще всего себе не покупает, хотя могла бы?",
+        options: [
+          { text: "Что-то для себя: уход, косметика, СПА", scores: { beauty: 2 } },
+          { text: "Красивые вещи для дома", scores: { practical: 2, sentimental: 1 } },
+          { text: "Походы куда-то: концерты, спектакли, мероприятия", scores: { experience: 2 } },
+          { text: "Фотокниги, распечатанные фотографии, памятные вещи", scores: { sentimental: 2 } },
+        ],
+      },
+      {
+        id: 5,
+        text: "Как мама относится к технике и гаджетам?",
+        options: [
+          { text: "Любит, когда всё удобно и современно", scores: { practical: 2 } },
+          { text: "Сложно с этим, лучше без лишних кнопок", scores: { sentimental: 1 } },
+          { text: "Нормально, но сама редко себе что-то покупает", scores: { practical: 1 } },
+          { text: "Вообще не про это", scores: { sentimental: 1 } },
+        ],
+      },
+      {
+        id: 6,
+        text: "Какой формат поздравления ей приятнее всего?",
+        options: [
+          { text: "Тёплое письмо/открытка, сказанные вслух слова", scores: { sentimental: 2 } },
+          { text: "Общий семейный ужин/посиделки", scores: { experience: 2 } },
+          { text: "Небольшой, но нужный подарок", scores: { practical: 2 } },
+          { text: "Красивый жест: букет, уход, СПА", scores: { beauty: 2 } },
+        ],
+      },
+      {
+        id: 7,
+        text: "Есть ли у мамы хобби?",
+        options: [
+          { text: "Кулинария, дом, огород", scores: { practical: 2 } },
+          { text: "Творчество, рукоделие", scores: { sentimental: 2 } },
+          { text: "Спорт, активный отдых", scores: { experience: 2 } },
+          { text: "Уход за собой, красота", scores: { beauty: 2 } },
+        ],
+      },
+      {
+        id: 8,
+        text: "Как мама относится к совместному времяпрепровождению?",
+        options: [
+          { text: "Очень ценит, когда все вместе", scores: { experience: 2, sentimental: 1 } },
+          { text: "Рада, но не всегда показывает это", scores: { sentimental: 1 } },
+          { text: "Считает, что у всех свои дела", scores: { practical: 1 } },
+          { text: "Скорее любит спокойно проводить время одна", scores: { beauty: 1 } },
+        ],
+      },
+      {
+        id: 9,
+        text: "Какие подарки ей дарили в прошлом году?",
+        options: [
+          { text: "Практичные (техника, посуда, вещи для дома)", scores: { practical: 2 } },
+          { text: "Букеты, косметика, сертификаты в салоны", scores: { beauty: 2 } },
+          { text: "Совместный отдых/поход куда-то", scores: { experience: 2 } },
+          { text: "Фотоальбомы, личные подарки от сердца", scores: { sentimental: 2 } },
+        ],
+      },
+      {
+        id: 10,
+        text: "Что бы ты сам/сама хотел(а) ей подарить?",
+        options: [
+          { text: "Много эмоций и воспоминаний", scores: { experience: 2, sentimental: 1 } },
+          { text: "То, что упростит ей жизнь", scores: { practical: 2 } },
+          { text: "Красивый, уходовый или расслабляющий подарок", scores: { beauty: 2 } },
+          { text: "Что-то очень личное и тёплое", scores: { sentimental: 2 } },
+        ],
+      },
+    ];
+
+    const resultDescriptions = {
+      experience: {
+        title: "Подарок-впечатление",
+        text:
+          "Судя по ответам, маме особенно важны эмоции и совместное время. " +
+          "Подойдут: сертификат на мастер-класс, билеты в театр или на концерт, " +
+          "совместный ужин вне дома, небольшой семейный праздник или фотосессия."
+      },
+      practical: {
+        title: "Практичный подарок",
+        text:
+          "Маме важно, чтобы подарки были полезными и упрощали жизнь. " +
+          "Обрати внимание на технику для дома, кухонные гаджеты, уютный текстиль, " +
+          "органайзеры, вещи, которые она давно хотела, но не покупала себе сама."
+      },
+      beauty: {
+        title: "Подарок для заботы о себе",
+        text:
+          "Маме нужен повод позаботиться о себе. Хорошая идея: набор уходовой косметики, " +
+          "сертификат в салон или СПА, качественный плед, аромасвечи, уютная пижама, " +
+          "набор для домашнего релакса."
+      },
+      sentimental: {
+        title: "Трогательный и личный подарок",
+        text:
+          "Для мамы особенно важны внимание и память. Отлично подойдут фотокнига, " +
+          "распечатанные семейные фото в красивой рамке, письмо от тебя, " +
+          "памятная вещь с гравировкой или символом вашей семьи."
+      },
+    };
+
+    // ---------- ЛОГИКА ТЕСТА ----------
+
+    let currentIndex = 0;
+    const answers = {}; // questionId -> optionIndex
+
+    const questionContainer = document.getElementById("question-container");
+    const progressEl = document.getElementById("progress");
+    const nextBtn = document.getElementById("next-btn");
+    const resultScreen = document.getElementById("result-screen");
+    const quizScreen = document.getElementById("quiz-screen");
+    const resultTitleEl = document.getElementById("result-title");
+    const resultTextEl = document.getElementById("result-text");
+    const restartBtn = document.getElementById("restart-btn");
+
+    function renderQuestion() {
+      const q = questions[currentIndex];
+      progressEl.textContent = `Вопрос ${currentIndex + 1} из ${questions.length}`;
+
+      const savedAnswerIndex = answers[q.id];
+
+      let html = `
+        <div class="question">
+          <div class="question-title">${q.text}</div>
+          <div class="options">
+      `;
+
+      q.options.forEach((opt, index) => {
+        const isChecked = savedAnswerIndex === index ? "checked" : "";
+        html += `
+          <label class="option">
+            <input type="radio" name="q${q.id}" value="${index}" ${isChecked}>
+            ${opt.text}
+          </label>
+        `;
+      });
+
+      html += `
+          </div>
+        </div>
+      `;
+
+      questionContainer.innerHTML = html;
+      updateNextButton();
+    }
+
+    function getSelectedOptionIndex() {
+      const q = questions[currentIndex];
+      const radios = document.querySelectorAll(`input[name="q${q.id}"]`);
+      for (let r of radios) {
+        if (r.checked) return parseInt(r.value, 10);
+      }
+      return null;
+    }
+
+    function updateNextButton() {
+      const selected = getSelectedOptionIndex();
+      nextBtn.disabled = selected === null;
+      nextBtn.textContent =
+        currentIndex === questions.length - 1 ? "Показать результат" : "Дальше";
+    }
+
+    questionContainer.addEventListener("change", () => {
+      updateNextButton();
+    });
+
+    nextBtn.addEventListener("click", () => {
+      const selected = getSelectedOptionIndex();
+      if (selected === null) return;
+      const q = questions[currentIndex];
+      answers[q.id] = selected;
+
+      if (currentIndex < questions.length - 1) {
+        currentIndex++;
+        renderQuestion();
+      } else {
+        showResult();
+      }
+    });
+
+    restartBtn.addEventListener("click", () => {
+      currentIndex = 0;
+      for (const key in answers) delete answers[key];
+      quizScreen.classList.remove("hidden");
+      resultScreen.classList.add("hidden");
+      renderQuestion();
+    });
+
+    function showResult() {
+      const totals = {
+        experience: 0,
+        practical: 0,
+        beauty: 0,
+        sentimental: 0,
+      };
+
+      questions.forEach((q) => {
+        const answerIndex = answers[q.id];
+        const opt = q.options[answerIndex];
+        const scores = opt.scores;
+        for (const key in scores) {
+          totals[key] += scores[key];
+        }
+      });
+
+      let bestType = null;
+      let bestScore = -Infinity;
+      for (const key in totals) {
+        if (totals[key] > bestScore) {
+          bestScore = totals[key];
+          bestType = key;
+        }
+      }
+
+      const result = resultDescriptions[bestType] || resultDescriptions["sentimental"];
+      resultTitleEl.textContent = result.title;
+      resultTextEl.textContent = result.text;
+
+      quizScreen.classList.add("hidden");
+      resultScreen.classList.remove("hidden");
+
+      // Отправка результата обратно в Telegram боту
+      if (tg) {
+        const payload = {
+          type: "mother_day_gift_result",
+          bestType,
+          totals,
+        };
+        tg.sendData(JSON.stringify(payload));
+      }
+    }
+
+    // Старт
+    renderQuestion();
+  </script>
+</body>
+</html>
